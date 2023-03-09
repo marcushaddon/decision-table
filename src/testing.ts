@@ -1,0 +1,87 @@
+import { Condition, Table, crossProducts,  enumerateVar, isConcrete, ActionRule, ANY, validateOrFail, VarInstance } from "./alg";
+
+type TestInput = Record<string, string | boolean>;
+
+// Not to be confused with a test case, our uut or "glue" code is 
+// responsible for translating a TestCondition into a test case
+export type TestCondition = {
+  action: string;
+  input: TestInput;
+};
+
+export type TestCase = Record<string, any>;
+
+export type TestResult = {
+  action: string;
+  testCase: Record<string, any>
+};
+
+type TestFailure = {
+  input: TestInput;
+  testCase: TestCase;
+  expected: string;
+  actual: string;
+}
+
+/**
+ * The UnitUnderTest is our application specific "glue code".
+ * It is responsible for translating a TestCondition into a TestCase,
+ * whatever that may look like for our given unit test (ie for pure functions
+ * it will likely be a simple mapping, but for integration tests, it may be
+ * more complex). It is also responsible with mapping the result of the test 
+ * back to the "action" as described by the table. It should return this action,
+ * along with the specific test case it mapped from the test condition, so that in 
+ * the event of failure, it can be logged.
+ */
+export type UnitUnderTest = (testCondition: TestInput) => TestResult | Promise<TestResult>;
+
+// TODO: we need a global const
+const parseBool = (val: string): string | boolean =>
+  val === "T" ? true :
+  val === "F" ? false :
+  val;
+
+const toInput = (condition: Condition): Record<string, string> =>
+  condition.reduce((testCase, varCondition: VarInstance) => ({
+    ...testCase,
+    [varCondition.name]: parseBool(varCondition.value)
+  }), {});
+
+const enumerateRule = (table: Table, rule: ActionRule) => {
+  const populated = rule.rule.map(
+    varRule => isConcrete(varRule) ? varRule : table.model[varRule.name]
+  );
+
+  const varConditions = populated.map(varRule => enumerateVar(varRule));
+
+  return crossProducts(varConditions);
+}
+
+const generateTestConditions = (table: Table): TestCondition[] => {
+  const ruleCases = table.rules.map(rule => {
+    const conditions = enumerateRule(table, rule);
+    return conditions.map(condition => ({
+      action: rule.action,
+      input: toInput(condition)
+    }))
+  });
+
+  return ruleCases.flatMap(e => e);
+}
+
+export const test = async (table: Table, uut: UnitUnderTest) => {
+  const failures: TestFailure[] = [];
+  for (const testCondition of generateTestConditions(table)) {
+    const { action, testCase } = await uut(testCondition.input);
+    if (action !== testCondition.action) {
+      failures.push({
+        input: testCondition.input,
+        testCase,
+        expected: testCondition.action,
+        actual: action
+      });
+    }
+  }
+
+  return failures;
+}
