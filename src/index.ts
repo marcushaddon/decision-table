@@ -15,6 +15,10 @@ import {
 } from "./alg";
 
 import {
+  loadTable
+} from "./cmd/load-table"
+
+import {
   test,
   TestCase,
   TestCondition,
@@ -32,9 +36,12 @@ export {
   Condition,
   TableValidationError,
   calcStateSpaceSize,
+  validateOrFail,
   validateTable,
   uncoveredConditions,
   conflictingRules,
+
+  loadTable,
 
   test,
   TestCase,

@@ -1,12 +1,10 @@
 import { Condition, Table, crossProducts,  enumerateVar, isConcrete, ActionRule, ANY, validateOrFail, VarInstance } from "./alg";
 
-type TestInput = Record<string, string | boolean>;
-
 // Not to be confused with a test case, our uut or "glue" code is 
 // responsible for translating a TestCondition into a test case
-export type TestCondition = {
+export type TestCondition<T> = {
   action: string;
-  input: TestInput;
+  input: T;
 };
 
 export type TestCase = Record<string, any>;
@@ -16,8 +14,8 @@ export type TestResult = {
   testCase: Record<string, any>
 };
 
-type TestFailure = {
-  input: TestInput;
+type TestFailure<T> = {
+  input: T;
   testCase: TestCase;
   expected: string;
   actual: string;
@@ -33,7 +31,7 @@ type TestFailure = {
  * along with the specific test case it mapped from the test condition, so that in 
  * the event of failure, it can be logged.
  */
-export type UnitUnderTest = (testCondition: TestInput) => TestResult | Promise<TestResult>;
+export type UnitUnderTest<T> =(testCondition: T) => TestResult | Promise<TestResult>;
 
 // TODO: we need a global const
 const parseBool = (val: string): string | boolean =>
@@ -57,21 +55,21 @@ const enumerateRule = (table: Table, rule: ActionRule) => {
   return crossProducts(varConditions);
 }
 
-const generateTestConditions = (table: Table): TestCondition[] => {
+const generateTestConditions = <T>(table: Table): TestCondition<T>[] => {
   const ruleCases = table.rules.map(rule => {
     const conditions = enumerateRule(table, rule);
     return conditions.map(condition => ({
       action: rule.action,
-      input: toInput(condition)
+      input: toInput(condition) as T
     }))
   });
 
   return ruleCases.flatMap(e => e);
 }
 
-export const test = async (table: Table, uut: UnitUnderTest) => {
-  const failures: TestFailure[] = [];
-  for (const testCondition of generateTestConditions(table)) {
+export const test = async <T>(table: Table, uut: UnitUnderTest<T>) => {
+  const failures: TestFailure<T>[] = [];
+  for (const testCondition of generateTestConditions<T>(table)) {
     const { action, testCase } = await uut(testCondition.input);
     if (action !== testCondition.action) {
       failures.push({

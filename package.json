@@ -1,11 +1,11 @@
 {
-  "name": "dt",
+  "name": "decision-table",
   "version": "1.0.0",
   "description": "Tools for creating, validating, documenting, and testing decision tables",
   "main": "dist/index.js",
   "scripts": {
     "test": "npx jest src",
-    "build": "tsc -p ./tsconfig.json",
+    "build": "npm run build:schema && cp ./src/cmd/doc-schema.json ./dist/cmd/doc-schema.json && tsc -p ./tsconfig.json && chmod +x ./dist/cmd/index.js",
     "build:schema": "ts-node ./src/scripts/build-schema.ts"
   },
   "bin": {

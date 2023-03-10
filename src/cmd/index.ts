@@ -1,4 +1,6 @@
+#! /usr/bin/env node
 import * as fs from "fs";
+import * as path from "path";
 import * as process from "process";
 
 import YAML from "yaml";
@@ -6,33 +8,9 @@ import { validate } from "jsonschema";
 
 import { ActionRule, Table, Var, Model, validateTable } from "../alg";
 import { docToTable,  TableDoc } from "./model";
+import { loadTable } from "./load-table";
 import { tableToMD } from "./output";
 
-const getSchema = () => {
-  const raw = fs.readFileSync("./doc-schema.json").toString();
-  return JSON.parse(raw);
-}
-
-export const loadTable = (tablePath: string): Table | null => {
-  const docSchema = getSchema();
-  const raw = fs.readFileSync(tablePath).toString();
-  const parsed = YAML.parse(raw);
-
-  const res = validate(parsed, docSchema, {
-    required: true,
-  });
-  
-  if (res.errors.length > 0) {
-    for (const err of res.errors) {
-      console.error(err.toString());
-    }
-    return null;
-  }
-
-  const table = docToTable(parsed);
-  
-  return table;
-}
 
 export const run = () => {
   const [,, fp] = process.argv;
