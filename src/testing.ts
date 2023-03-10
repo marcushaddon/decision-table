@@ -2,23 +2,23 @@ import { Condition, Table, crossProducts,  enumerateVar, isConcrete, ActionRule,
 
 // Not to be confused with a test case, our uut or "glue" code is 
 // responsible for translating a TestCondition into a test case
-export type TestCondition<T> = {
-  action: string;
-  input: T;
+export type TestCondition<I, A> = {
+  action: A;
+  input: I;
 };
 
-export type TestCase = Record<string, any>;
+export type DirectInputs = Record<string, any>;
 
-export type TestResult = {
-  action: string;
-  testCase: Record<string, any>
+export type TestResult<A> = {
+  action: A;
+  directInputs: DirectInputs
 };
 
-type TestFailure<T> = {
-  input: T;
-  testCase: TestCase;
-  expected: string;
-  actual: string;
+type TestFailure<I, A> = {
+  input: I;
+  directInputs: DirectInputs;
+  expected: A;
+  actual: A;
 }
 
 /**
@@ -31,7 +31,7 @@ type TestFailure<T> = {
  * along with the specific test case it mapped from the test condition, so that in 
  * the event of failure, it can be logged.
  */
-export type UnitUnderTest<T> =(testCondition: T) => TestResult | Promise<TestResult>;
+export type UnitUnderTest<I, A> =(testCondition: I) => TestResult<A> | Promise<TestResult<A>>;
 
 // TODO: we need a global const
 const parseBool = (val: string): string | boolean =>
@@ -55,26 +55,26 @@ const enumerateRule = (table: Table, rule: ActionRule) => {
   return crossProducts(varConditions);
 }
 
-const generateTestConditions = <T>(table: Table): TestCondition<T>[] => {
+const generateTestConditions = <I, A>(table: Table): TestCondition<I, A>[] => {
   const ruleCases = table.rules.map(rule => {
     const conditions = enumerateRule(table, rule);
     return conditions.map(condition => ({
-      action: rule.action,
-      input: toInput(condition) as T
+      action: rule.action as A,
+      input: toInput(condition) as I
     }))
   });
 
   return ruleCases.flatMap(e => e);
 }
 
-export const test = async <T>(table: Table, uut: UnitUnderTest<T>) => {
-  const failures: TestFailure<T>[] = [];
-  for (const testCondition of generateTestConditions<T>(table)) {
-    const { action, testCase } = await uut(testCondition.input);
+export const test = async <I, A>(table: Table, uut: UnitUnderTest<I, A>) => {
+  const failures: TestFailure<I, A>[] = [];
+  for (const testCondition of generateTestConditions<I, A>(table)) {
+    const { action, directInputs } = await uut(testCondition.input);
     if (action !== testCondition.action) {
       failures.push({
         input: testCondition.input,
-        testCase,
+        directInputs,
         expected: testCondition.action,
         actual: action
       });

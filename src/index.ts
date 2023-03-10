@@ -16,11 +16,11 @@ import {
 
 import {
   loadTable
-} from "./cmd/load-table"
+} from "./common"
 
 import {
   test,
-  TestCase,
+  DirectInputs,
   TestCondition,
   TestResult,
   UnitUnderTest,
@@ -44,7 +44,7 @@ export {
   loadTable,
 
   test,
-  TestCase,
+  DirectInputs,
   TestCondition,
   TestResult,
   UnitUnderTest,

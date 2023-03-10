@@ -3,12 +3,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as process from "process";
 
-import YAML from "yaml";
-import { validate } from "jsonschema";
-
-import { ActionRule, Table, Var, Model, validateTable } from "../alg";
-import { docToTable,  TableDoc } from "./model";
-import { loadTable } from "./load-table";
+import { validateTable } from "../alg";
+import { loadTable } from "../common";
 import { tableToMD } from "./output";
 
 
