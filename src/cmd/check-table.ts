@@ -1,14 +1,11 @@
-#! /usr/bin/env node
 import * as fs from "fs";
 import * as path from "path";
 import * as process from "process";
 
 import { validateTable } from "../alg";
 import { loadTable } from "../common";
-import { tableToMD } from "./output";
 
-
-export const run = () => {
+const checkTable = () => {
   const [,, fp] = process.argv;
 
   if (!fp) {
@@ -24,23 +21,7 @@ export const run = () => {
 
   const tableValidationErrs = validateTable(table);
 
-  const specName = (table.name as string) || "Untitled Decision Table";
-  const fileName = specName
-    .toLocaleLowerCase()
-    .split(" ")
-    .join("-")
-    + ".md";
-
-
-  const output = tableToMD(table.name, table, tableValidationErrs);
-  fs.writeFileSync(fileName, output);
-
-  if (tableValidationErrs.length === 0) {
-    console.log(`Decision table summary available at ${fileName}`);
-  } else { 
-    console.log(`Found ${tableValidationErrs.length} problems with spec, please se ${fileName}`);
-  }
+  console.table(tableValidationErrs);
 };
 
-
-run();
+checkTable();

@@ -5,11 +5,12 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "npx jest src",
-    "build": "npm run build:schema && tsc -p ./tsconfig.json && chmod +x ./dist/cmd/check-table.js && chmod +x ./dist/cmd/gen-testfile.js && cp ./src/common/doc-schema.json ./dist/common/doc-schema.json",
+    "build": "npm run build:schema && tsc -p ./tsconfig.json && ./src/scripts/make-cmds.sh && cp ./src/common/doc-schema.json ./dist/common/doc-schema.json",
     "build:schema": "ts-node ./src/scripts/build-schema.ts"
   },
   "bin": {
     "check-table": "./dist/cmd/check-table.js",
+    "document-table": "./dist/cmd/document-table.js",
     "generate-table-tests": "./dist/cmd/gen-testfile.js"
   },
   "keywords": [],
