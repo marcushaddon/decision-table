@@ -82,4 +82,4 @@ export const test = async <I, A>(table: Table, uut: UnitUnderTest<I, A>) => {
   }
 
   return failures;
-}
+};
