@@ -4,47 +4,11 @@ This is a node module for programmatically evaluating, validating, and documenti
 
 ## Usage
 ### Specification
-The tool takes as input a decision table specification as expressed in a `.yaml` file. The file has the following format:
+The tool takes as input a decision table specification as expressed in a `.yaml` file.
 
-```yaml
-type: object
-properties:
-  name:
-    type: string
-  vars:
-    type: object
-    additionalProperties:
-      anyOf:
-      - type: array
-        items:
-          type: string
-      - enum:
-        - boolean
-        type: string
-  rules:
-    type: array
-    items:
-      type: object
-      properties:
-        condition:
-          type: object
-          additionalProperties:
-            anyOf:
-            - type: array
-              items:
-                type: string
-            - type: string
-        action:
-          type: string
-      required:
-      - action
-      - condition
-required:
-- rules
-- vars
-```
+Here is an example of a simple specification file:
 
-A small example:
+
 ```yaml
 name: My first decision table
 # vars are the 'header cells' of our table
@@ -53,7 +17,7 @@ vars:
     - bar
     - baz
     - biz
-  myBool: boolean # 'boolean' provided as a string value is shorthand for the enum T | F
+  myBool: boolean # 'boolean' is shorthand for the enum T | F
 
 rules:
   # The following rule applies when foo=bar and myBool=T
@@ -166,7 +130,7 @@ hungerLevel: LOW | MEDIUM | HIGH
 
 Now assume we have a function somehwere in our codebase, `chooseFood: (bloodSugarLevel: string, partOfDay: string) => string` that should implement this logic. We can use the command `generate-table-tests` to generate test driver code.
 
-Running `% npx generate-table-tests ./what-to-eat.yaml` will output a file `test.ts` alongside our spec. This file exports three names `InputMap`, `OutputMap`, and `runTests`, which can be imported into our test suite like:
+Running `% npx generate-table-tests ./what-to-eat.yaml` will output a file `test.ts` alongside our spec. This file exports three names `InputMap`, `OutputMap`, and `runTests`. The first two names are types, and have been generated so that they describe our table as typescript types, and can be imported into our test suite like:
 
 ```typescript
 import { InputMap, OutputMap, runTests } from "./test.ts"; // <- generated file
@@ -174,11 +138,9 @@ import { InputMap, OutputMap, runTests } from "./test.ts"; // <- generated file
 
 > IMPORTANT!!!: This file should not be modified directly, as it will/should be regenerated as business requirements (and as a result the decision table spec) are updated
 
- By declaring our input and output maps to be of this type, Typescript will suggest 
+In order to test our code using the function `runTests`, we need to write a bit of "glue code" to translate from the table's model into our application code's model, and to translate the output of our application code back into the table's model. The intended use of the types `InputMap` and `OutputMap` is to guide us in creating our glue code.
 
-In order to test our code using the function `runTests`, we need to write a bit of "glue code" to translate from the table's model into our application codes model, and to translate the output of our application code back into the table's model. The intended use of the types `InputMap` and `OutputMap` is to guide us in creating our glue code.
-
-By declaring our input and output maps to be of these types (and providing the input and output types of our application code as the type arguments), Typescript will suggest which names are required in the maps, as well as which values can go with what names. It can't prevent all flakiness due to errors in our boilerplate, but it can prevent a lot. Additionally, errors not caught by the type checker should be caught at run (test) time and cause the suite to fail to run.
+By declaring our input and output maps to be of these types (and providing the input and output types of our application code as the type arguments), Typescript will suggest which names are required in the maps, as well as which values can go with what names. It can't prevent all flakiness due to errors in our boilerplate, but it can prevent a lot. Additionally, errors not caught by the type checker should be caught at run (test) time and cause the suite to fail to run before running any tests.
 
 An example:
 
