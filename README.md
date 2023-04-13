@@ -125,7 +125,7 @@ The errors that may be reported include:
   - rules not covering all variables in the model
   - rules specifying invalid values for a given variable. 
 
-Additionally, if the table contains overlapping rules specifying the *same* action, it will display a warning, since this is valid and sometimes useful for making the table understandable, but if done unintentionally, may signal confusion about the business logic.
+Additionally, if the table contains **redundant** rules (two or more rules specifying the *same* action), it will display a warning, since this is valid and sometimes useful for making the table understandable, but if done unintentionally, may signal confusion about the business logic.
 
 If you want to check a table for errors without creating or overwriting an existing document, you can use the command `check-table`:
 
@@ -164,63 +164,118 @@ hungerLevel: LOW | MEDIUM | HIGH
 
 ---
 
-Now assume we have a function somehwere in our codebase, `whatToEat: (hungerLevel: number, meal: string) => string` that should implement this logic. We can use the command `generate-table-tests` to generate test driver code.
+Now assume we have a function somehwere in our codebase, `chooseFood: (bloodSugarLevel: string, partOfDay: string) => string` that should implement this logic. We can use the command `generate-table-tests` to generate test driver code.
 
-Running `% npx generate-table-tests ./what-to-eat.yaml` will output a file `test.ts` with the following contents:
+Running `% npx generate-table-tests ./what-to-eat.yaml` will output a file `test.ts` alongside our spec. This file exports three names `InputMap`, `OutputMap`, and `runTests`, which can be imported into our test suite like:
 
-```typescript 
-import { loadTable, test, UnitUnderTest } from "decision-table";
-
-export type Condition = {
-  meal: "BREAKFAST" | "LUNCH" | "DINNER";
-  hungerLevel: "LOW" | "MEDIUM" | "HIGH";
-};
-
-export type Action = "YOGURT" | "EGGS" | "SOUP" | "ROASTED_VEGETABLES" | "PASTA";
-
-export const runTests = (uut: UnitUnderTest<Condition, Action>) => {
-  const table = loadTable("what-to-eat.yaml");
-  if (table === null) {
-    throw new Error("Cannot find table document");
-  }
-
-  return test(table, uut);
-};
-
+```typescript
+import { InputMap, OutputMap, runTests } from "./test.ts"; // <- generated file
 ```
 
 > IMPORTANT!!!: This file should not be modified directly, as it will/should be regenerated as business requirements (and as a result the decision table spec) are updated
 
-The intended use of the types `Condition` and `Action` and the function `runTests` is to be imported into a test suite, for example `whatToEat.spec.ts` like:
+ By declaring our input and output maps to be of this type, Typescript will suggest 
 
-```typescript
-import { Condtion, Action, runTests } from "./test.ts";
-```
+In order to test our code using the function `runTests`, we need to write a bit of "glue code" to translate from the table's model into our application codes model, and to translate the output of our application code back into the table's model. The intended use of the types `InputMap` and `OutputMap` is to guide us in creating our glue code.
 
-In order to test our code using this function, we need to write a bit of "glue code" to translate from the table's model into our application codes model, and to translate the output of our application code back into the table's model. 
-
-This is achieved by providing a function wrapping our "unit under test" that maps between our application types and the generated "table types". This function will be of type `UnitUnderTest<Condition, Action>`. The `UnitUnderTest` is just a function accepting one type and returning another, and the `Condition` and `Action` types are generated to match our table spec in order to give a degree of type safety to our glue code (for example if a variable is renamed or a new value added to the spec, typescript can fail our build until we have updated our tests, without causing our tests to flake).
+By declaring our input and output maps to be of these types (and providing the input and output types of our application code as the type arguments), Typescript will suggest which names are required in the maps, as well as which values can go with what names. It can't prevent all flakiness due to errors in our boilerplate, but it can prevent a lot. Additionally, errors not caught by the type checker should be caught at run (test) time and cause the suite to fail to run.
 
 An example:
+
+Our application code in `./decideMeal.ts`
 ```typescript
-import { whatToEat } from "services/meals";
-import { Condtion, Action, runTests } from "./test.ts";
-
-// Here we are assuming our application function whatToEat has type (hungerLevel: number, meal: string) => string
-
-const wrapper = (condition: Condition): Action => {
-  // Translate from our table's model to our applicaiton code's model
-  const translatedInput = translateInput(condition);
-  // Get the result of the function
-  const result = whatToEat(translatedInput);
-  // Translate from our application model back into our table's model
-  const translatedOutput = translateOutput(result);
-
-  return translatedOuput;
-};
-
-const translateInput = (condition: Condition): string => {
-  switch (condition)
+export type MealInput = {
+  timeOfDay: "morning" | "noon" | "night",
+  bloodSugar: "high" | "medium" | "low"
 }
 
+export type Food = "Yogurt"  | "eggs"
+
+export const decideMeal = (input: MealInput): Food => {
+  // ... our unimplemented application code
+  return "Yogurt";
+}
 ```
+
+Our test suite at `./decideMeal.spec.ts`
+```typescript
+import { decideMeal, MealInput, Food } from "./decideMeal";
+import {
+  runTests,
+  InputMap,
+  OutputMap
+} from "./test"; // <-- our generated file
+
+// Our glue code
+// The form of InputMap is TableVariable -> Application Variable -> Table Value -> Application Value
+const inputMap: InputMap<MealInput> = {
+  meal: {
+    timeOfDay: {
+      BREAKFAST: "morning",
+      LUNCH: "noon",
+      DINNER: "night"
+    }
+  },
+  hungerLevel: {
+    bloodSugar: {
+      LOW: "low",
+      MEDIUM: "medium",
+      HIGH: "high",
+    }
+  }
+}
+
+const outputMap: OutputMap<Food> = {
+  Yogurt: "YOGURT",
+  eggs: "EGGS",
+};
+
+it("implements table", async () => {
+  const failures = await runTests(decideMeal, inputMap, outputMap);
+  expect(failures).toEqual([]);
+});
+
+```
+
+In the example above, if `runTests` finds any errors, the expect line will cause jest to print out the errors. Since our function is not yet implemented, it will look something like this:
+
+```bash
+ FAIL  src/whatToEat.spec.ts
+  ● implements table
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 93
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "actualAction": "YOGURT",
+    +     "condition": Object {
+    +       "hungerLevel": "HIGH",
+    +       "meal": "BREAKFAST",
+    +     },
+    +     "expectedAction": "EGGS",
+    +     "input": Object {
+    +       "bloodSugar": "high",
+    +       "timeOfDay": "morning",
+    +     },
+    +     "output": "Yorgurn",
+    +   },
+    +   Object {
+    +     "actualAction": "YOGURT",
+    +     "condition": Object {
+    +       "hungerLevel": "LOW",
+    +       "meal": "LUNCH",
+    +     },
+    +     "expectedAction": "SOUP",
+    +     "input": Object {
+    +       "bloodSugar": "low",
+    +       "timeOfDay": "noon",
+    +     },
+    +     "output": "Yorgurn",
+    +   } ...
+```
+
+The exact method of documenting the failures and causing the test to fail is left to you.
