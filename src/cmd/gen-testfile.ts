@@ -34,18 +34,28 @@ const generateTestTypes = (docPath: string) => {
   const actionType = `type Action = ${[...actions].map(action => `"${action}"`).join(" | ")};`
 
 const types = `
-import { loadTable, test, UnitUnderTest } from "decision-table";
+import {
+  loadTable,
+  test,
+  InputMap as GenericInputMap,
+  OutputMap as GenericOutputMap,
+  TestCondition,
+  TestInput
+} from "decision-table";
 
 export ${conditionType}
 export ${actionType}
 
-export const runTests = (uut: UnitUnderTest<Condition, Action>) => {
+export type InputMap<I extends TestInput> = GenericInputMap<Condition, I>;
+export type OutputMap<O extends string> = GenericOutputMap<O, Action>;
+
+export const runTests = <I extends TestInput, O extends string>(uut: (input: I) => O | Promise<O>, inputMap: InputMap<I>, outputMap: OutputMap<O>) => {
   const table = loadTable("${docPath}");
   if (table === null) {
     throw new Error("Cannot find table document");
   }
 
-  return test(table, uut);
+  return test<Condition, Action, I, O>(table, inputMap, outputMap, uut);
 };
 
 `
