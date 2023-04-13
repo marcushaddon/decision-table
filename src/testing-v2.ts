@@ -1,4 +1,4 @@
-import { Table, ActionRule, isConcrete, VarRule, enumerateVar, crossProducts, Condition } from "./alg";
+import { Table, ActionRule, isConcrete, VarRule, enumerateVar, crossProducts, Condition, VarInstance } from "./alg";
 /**
  * Idea: Instead of asking users to impelement a function that takes type of
  * Condition and returns type of TestResult<Action> (with all its "directInputs bookeeping")
@@ -10,7 +10,6 @@ import { Table, ActionRule, isConcrete, VarRule, enumerateVar, crossProducts, Co
 type MyCondition = {
   BIZ: "T" | "F";
   FOO: "FOOBAR" | "FOOBAZ";
-  
 };
 
 type MyAction = "PROCEED" | "STOP";
@@ -31,15 +30,16 @@ type UnionMap<A extends string, B extends string> = {
 type StringRec = Record<string, string>;
 type AnyRec = Record<string, any>;
 
-type ObjectMap<A extends StringRec, B extends AnyRec> = {
+type InputMap<A extends StringRec, B extends AnyRec> = {
   [AKey in keyof A]: {
     [BKey in keyof B]?: UnionMap<A[AKey], B[BKey]>
   }
-}
+};
 
-type DeleteMe4 = ObjectMap<MyCondition, MyInput>
+// Just aliasing i guess
+type OutputMap<O extends string, A extends string> = UnionMap<O, A>;
 
-const objectMap2: ObjectMap<MyCondition, MyInput> = {
+const objectMap2: InputMap<MyCondition, MyInput> = {
   FOO: {
     foo: {
       FOOBAR: "bar",
@@ -56,7 +56,7 @@ const objectMap2: ObjectMap<MyCondition, MyInput> = {
 
 const conditionToInput =
   <ConditionType extends StringRec, InputType extends AnyRec>(
-    map: ObjectMap<ConditionType, InputType>,
+    map: InputMap<ConditionType, InputType>,
     condition: ConditionType
   ): InputType => {
   const mappedInput = Object.entries(condition)
@@ -96,18 +96,57 @@ const enumerateRule = (table: Table, rule: ActionRule) => {
 type TestCase<C, A> = {
   condition: C,
   action: A
+};
+
+type TestFailure<C, A, I, O> = {
+  condition: C;
+  expectedAction: A;
+  actualAction?: A;
+  input: I;
+  output: O;
 }
+
+const toConditionRecord = (conditionArray: VarInstance[]): Condition =>
+  conditionArray.reduce((cond, varInstance) => ({
+    ...cond,
+    [varInstance.name]: varInstance.value
+  }), {} as Condition)
 
 const generateTestConditions = <C, A>(table: Table): TestCase<C, A>[] => {
   const ruleCases = table.rules.map(rule => {
     const conditions = enumerateRule(table, rule);
     return conditions.map(condition => ({
       action: rule.action as A,
-      input: toInput(condition) as C
+      condition: toConditionRecord(condition) as C
     }))
   });
 
   return ruleCases.flatMap(e => e);
 }
 
-console.log(conditionToInput(objectMap2, condition));
+export const test =
+  async <C extends StringRec, A extends string, I extends AnyRec, O extends string>
+    (table: Table,
+     inputMap: InputMap<C, I>,
+     outputMap: OutputMap<O, A>,
+     uut: (input: I) => O | Promise<O>
+    ) => {
+      const failures: TestFailure<C, A, I, O>[] = [];
+      const testCases = generateTestConditions<C, A>(table);
+      for (const testCase of testCases) {
+        const input = conditionToInput(inputMap, testCase.condition);
+        const output = await uut(input);
+        const actionResult = outputMap[output];
+        if (actionResult !== testCase.action) {
+          failures.push({
+            condition: testCase.condition,
+            expectedAction: testCase.action,
+            actualAction: actionResult,
+            input,
+            output,
+          });
+        }
+      }
+
+      return failures;
+    }
