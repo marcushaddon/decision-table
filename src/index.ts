@@ -24,7 +24,7 @@ import {
   TestInput,
   InputMap,
   OutputMap,
-} from "./testing-v2";
+} from "./testing";
 
 export {
   ANY,
