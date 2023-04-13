@@ -20,11 +20,11 @@ import {
 
 import {
   test,
-  DirectInputs,
   TestCondition,
-  TestResult,
-  UnitUnderTest,
-} from "./testing";
+  TestInput,
+  InputMap,
+  OutputMap,
+} from "./testing-v2";
 
 export {
   ANY,
@@ -44,8 +44,8 @@ export {
   loadTable,
 
   test,
-  DirectInputs,
   TestCondition,
-  TestResult,
-  UnitUnderTest,
+  TestInput,
+  InputMap,
+  OutputMap
 }

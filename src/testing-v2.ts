@@ -1,4 +1,13 @@
-import { Table, ActionRule, isConcrete, VarRule, enumerateVar, crossProducts, Condition, VarInstance } from "./alg";
+import {
+  Table,
+  ActionRule,
+  isConcrete,
+  VarRule,
+  enumerateVar,
+  crossProducts,
+  Condition,
+  VarInstance
+} from "./alg";
 /**
  * Idea: Instead of asking users to impelement a function that takes type of
  * Condition and returns type of TestResult<Action> (with all its "directInputs bookeeping")
@@ -25,19 +34,19 @@ type ValueOf<T> = T extends { [k: string]: infer V } ? V : T;
 
 type UnionMap<A extends string, B extends string> = {
   [k in A]: B
-}
+};
 
-type StringRec = Record<string, string>;
-type AnyRec = Record<string, any>;
+export type TestCondition = Record<string, string>;
+export type TestInput = Record<string, any>;
 
-type InputMap<A extends StringRec, B extends AnyRec> = {
+export type InputMap<A extends TestCondition, B extends TestInput> = {
   [AKey in keyof A]: {
     [BKey in keyof B]?: UnionMap<A[AKey], B[BKey]>
   }
 };
 
 // Just aliasing i guess
-type OutputMap<O extends string, A extends string> = UnionMap<O, A>;
+export type OutputMap<O extends string, A extends string> = UnionMap<O, A>;
 
 const objectMap2: InputMap<MyCondition, MyInput> = {
   FOO: {
@@ -55,7 +64,7 @@ const objectMap2: InputMap<MyCondition, MyInput> = {
 }
 
 const conditionToInput =
-  <ConditionType extends StringRec, InputType extends AnyRec>(
+  <ConditionType extends TestCondition, InputType extends TestInput>(
     map: InputMap<ConditionType, InputType>,
     condition: ConditionType
   ): InputType => {
@@ -125,7 +134,7 @@ const generateTestConditions = <C, A>(table: Table): TestCase<C, A>[] => {
 }
 
 export const test =
-  async <C extends StringRec, A extends string, I extends AnyRec, O extends string>
+  async <C extends TestCondition, A extends string, I extends TestInput, O extends string>
     (table: Table,
      inputMap: InputMap<C, I>,
      outputMap: OutputMap<O, A>,
