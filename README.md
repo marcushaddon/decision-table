@@ -3,7 +3,7 @@
 This is a node module for programmatically evaluating, validating, and documenting decision tables ([wikipedia](https://en.wikipedia.org/wiki/Decision_table)). It additionally allows for generating and, with a bit of "glue code", running tests that verify correct implementation of a given decision table specification.
 
 ## Usage
-### Specification
+### <a name="specification">Specification</a>
 The tool takes as input a decision table specification as expressed in a `.yaml` file.
 
 Here is an example of a simple specification file:
@@ -105,7 +105,7 @@ If you want to check a table for errors without creating or overwriting an exist
 ```
 > (Here, the term "fatal" indicates whether this issue would prevent the table from being able to be documented)
 
-# Testing
+# <a name="testing">Testing</a>
 Given a decision table specification document that has passed all checks, this libary also enables testing that application code fully implements the decision table, within your existing test suite. Assume we have decided our app should implement the following logic at `what-to-eat.yaml`:
 
 ---
