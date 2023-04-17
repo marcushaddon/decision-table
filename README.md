@@ -130,114 +130,49 @@ hungerLevel: LOW | MEDIUM | HIGH
 
 Now assume we have a function somehwere in our codebase, `chooseFood: (bloodSugarLevel: string, partOfDay: string) => string` that should implement this logic. We can use the command `generate-table-tests` to generate test driver code.
 
-Running `% npx generate-table-tests ./what-to-eat.yaml` will output a file `test.ts` alongside our spec. This file exports three names `InputMap`, `OutputMap`, and `runTests`. The first two names are types, and have been generated so that they describe our table as typescript types, and can be imported into our test suite like:
+Running `% npx generate-table-tests ./what-to-eat.yaml` will output a file `test.ts` alongside our spec. This file exports several names, the most immediately useful of which are `Condition`, `Action` and `runTests`.
+
+`Condition` and `Action` are types that have been generated to match the model described in your spec file. Given that we have generated tests for `what-to-eat.yaml`, they would have the following form:
 
 ```typescript
-import { InputMap, OutputMap, runTests } from "./test.ts"; // <- generated file
-```
-
-> IMPORTANT!!!: This file should not be modified directly, as it will/should be regenerated as business requirements (and as a result the decision table spec) are updated
-
-In order to test our code using the function `runTests`, we need to write a bit of "glue code" to translate from the table's model into our application code's model, and to translate the output of our application code back into the table's model. The intended use of the types `InputMap` and `OutputMap` is to guide us in creating our glue code.
-
-By declaring our input and output maps to be of these types (and providing the input and output types of our application code as the type arguments), Typescript will suggest which names are required in the maps, as well as which values can go with what names. It can't prevent all flakiness due to errors in our boilerplate, but it can prevent a lot. Additionally, errors not caught by the type checker should be caught at run (test) time and cause the suite to fail to run before running any tests.
-
-An example:
-
-Our application code in `./decideMeal.ts`
-```typescript
-export type MealInput = {
-  timeOfDay: "morning" | "noon" | "night",
-  bloodSugar: "high" | "medium" | "low"
-}
-
-export type Food = "Yogurt"  | "eggs"
-
-export const decideMeal = (input: MealInput): Food => {
-  // ... our unimplemented application code
-  return "Yogurt";
-}
-```
-
-Our test suite at `./decideMeal.spec.ts`
-```typescript
-import { decideMeal, MealInput, Food } from "./decideMeal";
-import {
-  runTests,
-  InputMap,
-  OutputMap
-} from "./test"; // <-- our generated file
-
-// Our glue code
-// The form of InputMap is TableVariable -> Application Variable -> Table Value -> Application Value
-const inputMap: InputMap<MealInput> = {
-  meal: {
-    timeOfDay: {
-      BREAKFAST: "morning",
-      LUNCH: "noon",
-      DINNER: "night"
-    }
-  },
-  hungerLevel: {
-    bloodSugar: {
-      LOW: "low",
-      MEDIUM: "medium",
-      HIGH: "high",
-    }
-  }
-}
-
-const outputMap: OutputMap<Food> = {
-  Yogurt: "YOGURT",
-  eggs: "EGGS",
+export type Condition = {
+  meal: "BREAKFAST" | "LUNCH" | "DINNER";
+  hungerLevel: "LOW" | "MEDIUM" | "HIGH";
 };
 
-it("implements table", async () => {
-  const failures = await runTests(decideMeal, inputMap, outputMap);
+export type Action = "YOGURT" | "EGGS" | "SOUP" | "ROASTED_VEGETABLES" | "PASTA";
+```
+while `runTests` has the type:
+
+```typescript
+((condition: Condition) => Action | Promise<Action>) => Promise<TestFailure<Condition, Action>[]>
+```
+
+To allow the library to run test for and check that our code implements each rule described by our spec, we need to implement a function accepting a single argument of type `Condition`, and returning or resolving to a value of type `Decision`. In the case of testing a pure function, this function might simply map between the generated types and the types in your application code. For a test that needs to mock external dependencies, this function could map the input to a set of values for your mocks to return. Each comes with it's own tradeoffs, and finding the right balance is left to you.
+
+Once we have done this, we can pass this function to the `runTests` function exported by the generated test file, and the library will exhaustively check that the provided function behaves according to spec. For any rules that our provided function does not implement, runTests will resolve a `TestFailure`, which can be logged or persisted according to your use case. 
+
+The presence of test failures in the result of `runTests` should cause your test suite to fail.
+
+```typescript
+import { applicationFunction } from "./applicationFunction";
+import {
+  Action,
+  Condition,
+  runTests
+} from "___test-table___.ts";
+
+const wrapper = async (condition: Condition): Promise<Action> => {
+  const input = //... map condition to test input or setup
+  const result = applicationFunction(input);
+  const action = // ... map result to action
+
+  return action;
+};
+
+it("implements decision table spec", async () => {
+  const failures = await runTests(wrapper);
   expect(failures).toEqual([]);
 });
 
 ```
-
-In the example above, if `runTests` finds any errors, the expect line will cause jest to print out the errors. Since our function is not yet implemented, it will look something like this:
-
-```bash
- FAIL  src/whatToEat.spec.ts
-  ● implements table
-
-    expect(received).toEqual(expected) // deep equality
-
-    - Expected  -  1
-    + Received  + 93
-
-    - Array []
-    + Array [
-    +   Object {
-    +     "actualAction": "YOGURT",
-    +     "condition": Object {
-    +       "hungerLevel": "HIGH",
-    +       "meal": "BREAKFAST",
-    +     },
-    +     "expectedAction": "EGGS",
-    +     "input": Object {
-    +       "bloodSugar": "high",
-    +       "timeOfDay": "morning",
-    +     },
-    +     "output": "Yorgurn",
-    +   },
-    +   Object {
-    +     "actualAction": "YOGURT",
-    +     "condition": Object {
-    +       "hungerLevel": "LOW",
-    +       "meal": "LUNCH",
-    +     },
-    +     "expectedAction": "SOUP",
-    +     "input": Object {
-    +       "bloodSugar": "low",
-    +       "timeOfDay": "noon",
-    +     },
-    +     "output": "Yorgurn",
-    +   } ...
-```
-
-The exact method of documenting the failures and causing the test to fail is left to you.

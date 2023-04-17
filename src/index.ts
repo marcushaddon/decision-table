@@ -18,34 +18,10 @@ import {
   loadTable
 } from "./common"
 
-import {
-  test,
-  TestCondition,
-  TestInput,
-  InputMap,
-  OutputMap,
-} from "./testing";
-
 export {
-  ANY,
-  Var,
-  Model,
-  Rule,
-  ActionRule,
-  Table,
-  Condition,
-  TableValidationError,
   calcStateSpaceSize,
   validateOrFail,
   validateTable,
-  uncoveredConditions,
-  conflictingRules,
 
   loadTable,
-
-  test,
-  TestCondition,
-  TestInput,
-  InputMap,
-  OutputMap
 }
