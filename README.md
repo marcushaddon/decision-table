@@ -148,7 +148,9 @@ while `runTests` has the type:
 ((condition: Condition) => Action | Promise<Action>) => Promise<TestFailure<Condition, Action>[]>
 ```
 
-To allow the library to run test for and check that our code implements each rule described by our spec, we need to implement a function accepting a single argument of type `Condition`, and returning or resolving to a value of type `Decision`. In the case of testing a pure function, this function might simply map between the generated types and the types in your application code. For a test that needs to mock external dependencies, this function could map the input to a set of values for your mocks to return. Each comes with it's own tradeoffs, and finding the right balance is left to you.
+To allow the library to run test for and check that our code implements each rule described by our spec, we need to implement a function accepting a single argument of type `Condition`, and returning or resolving to a value of type `Decision`.
+
+In the case of testing a pure function, this function might simply map between the generated types and the types in your application code. For a test that needs to mock external dependencies, this function could map the input to a set of values for your mocks to return, or for an integration test this function could serve as input to a function that performs test set up and teardown. Each comes with it's own tradeoffs, and finding the right balance is left to you.
 
 Once we have done this, we can pass this function to the `runTests` function exported by the generated test file, and the library will exhaustively check that the provided function behaves according to spec. For any rules that our provided function does not implement, runTests will resolve a `TestFailure`, which can be logged or persisted according to your use case. 
 

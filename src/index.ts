@@ -18,10 +18,28 @@ import {
   loadTable
 } from "./common"
 
+import {
+  mapAndTest,
+  TestCondition,
+  TestInput,
+  InputMap,
+  OutputMap,
+
+  test
+} from "./testing";
+
 export {
   calcStateSpaceSize,
   validateOrFail,
   validateTable,
 
   loadTable,
+
+  mapAndTest,
+  TestCondition,
+  TestInput,
+  InputMap,
+  OutputMap,
+
+  test
 }

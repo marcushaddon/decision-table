@@ -42,7 +42,7 @@ import {
   OutputMap as GenericOutputMap,
   TestCondition,
   TestInput
-} from "decision-table/testing";
+} from "decision-table";
 
 export ${conditionType}
 export ${actionType}

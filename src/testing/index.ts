@@ -1,4 +1,4 @@
-export {
+import {
   mapAndTest,
   TestCondition,
   TestInput,
@@ -6,6 +6,16 @@ export {
   OutputMap,
 } from "./mapped";
 
-export {
+import {
   test
 } from "./simple";
+
+export {
+  mapAndTest,
+  TestCondition,
+  TestInput,
+  InputMap,
+  OutputMap,
+
+  test
+}
