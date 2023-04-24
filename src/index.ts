@@ -19,33 +19,27 @@ import {
 } from "./common"
 
 import {
-  test,
+  mapAndTest,
   TestCondition,
   TestInput,
   InputMap,
   OutputMap,
+
+  test
 } from "./testing";
 
 export {
-  ANY,
-  Var,
-  Model,
-  Rule,
-  ActionRule,
-  Table,
-  Condition,
-  TableValidationError,
   calcStateSpaceSize,
   validateOrFail,
   validateTable,
-  uncoveredConditions,
-  conflictingRules,
 
   loadTable,
 
-  test,
+  mapAndTest,
   TestCondition,
   TestInput,
   InputMap,
-  OutputMap
+  OutputMap,
+
+  test
 }

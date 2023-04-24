@@ -34,9 +34,10 @@ const generateTestTypes = (docPath: string) => {
   const actionType = `type Action = ${[...actions].map(action => `"${action}"`).join(" | ")};`
 
 const types = `
+import { loadTable } from "decision-table";
 import {
-  loadTable,
   test,
+  mapAndTest,
   InputMap as GenericInputMap,
   OutputMap as GenericOutputMap,
   TestCondition,
@@ -49,14 +50,23 @@ export ${actionType}
 export type InputMap<I extends TestInput> = GenericInputMap<Condition, I>;
 export type OutputMap<O extends string> = GenericOutputMap<O, Action>;
 
-export const runTests = <I extends TestInput, O extends string>(uut: (input: I) => O | Promise<O>, inputMap: InputMap<I>, outputMap: OutputMap<O>) => {
+export const runMappedTests = <I extends TestInput, O extends string>(uut: (input: I) => O | Promise<O>, inputMap: InputMap<I>, outputMap: OutputMap<O>) => {
   const table = loadTable("${docPath}");
   if (table === null) {
     throw new Error("Cannot find table document");
   }
 
-  return test<Condition, Action, I, O>(table, inputMap, outputMap, uut);
+  return mapAndTest<Condition, Action, I, O>(table, inputMap, outputMap, uut);
 };
+
+export const runTests = (uut: (condition: Condition) => Action | Promise<Action>) => {
+  const table = loadTable("${docPath}");
+  if (table === null) {
+    throw new Error("Cannot find table document");
+  }
+
+  return test<Condition, Action>(table, uut);
+}
 
 `
 const outDir = path.dirname(docPath);
